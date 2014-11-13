@@ -60,5 +60,5 @@ Here are the additional features proposed by this module:
         "wizard/prodlot_wizard_view.xml",
     ],
     "active": False,
-    'installable': False
+    'installable': True
 }
