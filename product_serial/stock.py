@@ -127,7 +127,7 @@ class stock_move(orm.Model):
         result = super(stock_move, self).action_done(cr, uid, ids, context)
         for move in self.browse(cr, uid, ids):
             if (
-                move.product_id.lot_split_type and
+                move.product_id.product_tmpl_id.lot_split_type and
                 move.move_dest_id and
                 move.move_dest_id.id
             ):
@@ -182,14 +182,14 @@ class stock_move(orm.Model):
         for move in self.browse(cr, uid, ids, context=context):
             qty = move.product_qty
             lu_qty = False
-            if move.product_id.lot_split_type == 'lu':
+            if move.product_id.product_tmpl_id.lot_split_type == 'lu':
                 if not move.product_id.packaging:
                     raise orm.except_orm(_('Error :'), _(
                         "Product '%s' has 'Lot split type' = "
                         "'Logistical Unit' but is missing packaging "
                         "information.") % (move.product_id.name))
                 lu_qty = move.product_id.packaging[0].qty
-            elif move.product_id.lot_split_type == 'single':
+            elif move.product_id.product_tmpl_id.lot_split_type == 'single':
                 lu_qty = 1
             if lu_qty and qty > 1:
                 # Set existing move to LU quantity
