@@ -10,8 +10,8 @@
 <openerp>
 <data noupdate="1">
 
-<!-- Laptop E5023  -->
-<record id="product.product_product_25" model="product.product">
+<!-- Laptop E5023 -->
+<record id="product.product_product_25" model="product.template">
     <field name="lot_split_type">single</field>
     <field name="track_production">True</field>
     <field name="track_incoming">True</field>
