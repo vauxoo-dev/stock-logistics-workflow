@@ -18,16 +18,12 @@
 #    along with this program.  If not, see <http://www.gnu.org/licenses/>.
 #
 ##############################################################################
-
 {
     "name": "Product Serial",
     "summary": "Enhance Serial Number management",
     "version": "1.0",
     "author": "Akretion, NaN·tic",
-    "website": "http://www.akretion.com",
-    "depends": ["stock"],
     "category": "Generic Modules/Inventory Control",
-    "license": "AGPL-3",
     "description": """Enhance the management of Production Lots (Serial Numbers) in OpenERP.
 
 Here are the additional features proposed by this module:
@@ -51,14 +47,27 @@ Here are the additional features proposed by this module:
 4. If the option 'Group invoice lines' is active for the Company,
    OpenERP will group the invoice lines to make it look like the
    Sale/Purchase Order when generating an Invoice from a Picking.
-    """,
-    "demo": ["product_demo.xml"],
+
+""",
+    "website": "http://www.akretion.com",
+    "license": "AGPL-3",
+    "depends": [
+        "stock"
+    ],
+    "demo": [
+        "product_demo.xml"
+    ],
     "data": [
         "product_view.xml",
         "company_view.xml",
         "stock_view.xml",
-        "wizard/prodlot_wizard_view.xml",
+        "wizard/prodlot_wizard_view.xml"
     ],
-    "active": False,
-    'installable': True
+    "test": [],
+    "js": [],
+    "css": [],
+    "qweb": [],
+    "installable": True,
+    "auto_install": False
 }
+# vim:expandtab:smartindent:tabstop=4:softtabstop=4:shiftwidth=4:
