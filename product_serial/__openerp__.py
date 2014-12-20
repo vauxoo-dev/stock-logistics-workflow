@@ -24,7 +24,9 @@
     "version": "1.0",
     "author": "Akretion, NaN·tic",
     "category": "Generic Modules/Inventory Control",
-    "description": """Enhance the management of Production Lots (Serial Numbers) in OpenERP.
+    "description": """
+
+Enhance the management of Production Lots (Serial Numbers) in OpenERP.
 
 Here are the additional features proposed by this module:
 
