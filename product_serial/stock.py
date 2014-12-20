@@ -27,46 +27,64 @@ from openerp.osv import fields, orm
 import hashlib
 from openerp.tools.translate import _
 
+class stock_quant(orm.Model):
+    _inherit = "stock.quant"
+
+    def copy(self, cr, uid, id, default=None, context=None): # pylint: disable=w0622
+        """
+        Overwrite the copy method to erase the new value of the prodlot_code.
+        """
+        context = context or {}
+        default = default or {}
+        default['new_prodlot_code'] = False
+        return super(stock_quant, self).copy(
+            cr, uid, id, default, context=context) # pylint: disable=w0622
+
+    def _get_prodlot_code(self, cr, uid, ids, field_name, arg, context=None):
+        """
+        function field method.
+        @return dictionary {quant_id : new_prodlot_code}.
+        """
+        res = {}
+        for quant in self.browse(cr, uid, ids):
+            res[quant.id] = quant.lot_id and quant.lot_id.name or False
+        return res
+
+    def _set_prodlot_code(self, cr, uid, ids, name, value, arg, context=None):
+        """
+        """
+        context = context or {}
+        ids = isinstance(ids, (int, long)) and [ids] or ids
+        if not value:
+            return False
+
+        for quant in self.browse(cr, uid, ids, context=context):
+            product_id = quant.product_id.id
+            existing_lot = quant.lot_id
+            if existing_lot:  # avoid creating a prodlot twice
+                self.pool.get('stock.production.lot').write(
+                    cr, uid, existing_lot.id, {'name': value})
+            else:
+                lot_obj = self.pool['stock.production.lot']
+                lot_id = lot_obj.create(cr, uid, {
+                    'name': value,
+                    'product_id': product_id,
+                })
+                quant.write({'lot_id': lot_id})
+
+    _columns = {
+        'new_prodlot_code': fields.function(
+            _get_prodlot_code,
+            fnct_inv=_set_prodlot_code,
+            method=True, type='char', size=64,
+            string='Create Serial Number', select=1),
+    }
 
 class stock_move(orm.Model):
     _inherit = "stock.move"
     # We order by product name because otherwise, after the split,
     # the products are "mixed" and not grouped by product name any more
     _order = "picking_id, name, id"
-
-    def copy(self, cr, uid, id, default=None, context=None):
-        if not default:
-            default = {}
-        default['new_prodlot_code'] = False
-        return super(stock_move, self).copy(cr, uid, id, default,
-                                            context=context)
-
-    def _get_prodlot_code(self, cr, uid, ids, field_name, arg, context=None):
-        res = {}
-        for move in self.browse(cr, uid, ids):
-            res[move.id] = move.prodlot_id and move.prodlot_id.name or False
-        return res
-
-    def _set_prodlot_code(self, cr, uid, ids, name, value, arg, context=None):
-        if not value:
-            return False
-
-        if isinstance(ids, (int, long)):
-            ids = [ids]
-
-        for move in self.browse(cr, uid, ids, context=context):
-            product_id = move.product_id.id
-            existing_prodlot = move.prodlot_id
-            if existing_prodlot:  # avoid creating a prodlot twice
-                self.pool.get('stock.production.lot').write(
-                    cr, uid, existing_prodlot.id, {'name': value})
-            else:
-                lot_obj = self.pool['stock.production.lot']
-                prodlot_id = lot_obj.create(cr, uid, {
-                    'name': value,
-                    'product_id': product_id,
-                })
-                move.write({'prodlot_id': prodlot_id})
 
     def _get_tracking_code(self, cr, uid, ids, field_name, arg, context=None):
         res = {}
@@ -93,12 +111,6 @@ class stock_move(orm.Model):
                 move.write({'tracking_id': tracking_id})
 
     _columns = {
-        'new_prodlot_code': fields.function(
-            _get_prodlot_code,
-            fnct_inv=_set_prodlot_code,
-            method=True, type='char', size=64,
-            string='Create Serial Number', select=1
-        ),
         'new_tracking_code': fields.function(
             _get_tracking_code, fnct_inv=_set_tracking_code,
             method=True, type='char', size=64,
