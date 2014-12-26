@@ -56,9 +56,10 @@ Here are the additional features proposed by this module:
     "data": [
         "product_view.xml",
         "company_view.xml",
-        "stock_view.xml",
+        # Out of scope of minimal porting for now
+        #"stock_view.xml",
         "wizard/prodlot_wizard_view.xml",
     ],
     "active": False,
-    'installable': False
+    'installable': True,
 }

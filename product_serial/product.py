@@ -24,7 +24,7 @@ from openerp.osv import fields, orm
 
 
 class product_product(orm.Model):
-    _inherit = "product.product"
+    _inherit = "product.template"
 
     _columns = {
         'lot_split_type': fields.selection([
