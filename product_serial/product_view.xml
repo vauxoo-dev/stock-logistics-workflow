@@ -9,8 +9,8 @@
     <field name="inherit_id" ref="stock.view_template_property_form"/>
     <field name="arch" type="xml">
         <xpath expr="//field[@name='track_outgoing']" position="after">
-            <field name="track_internal" groups="stock.group_production_lot"/>
-            <field name="lot_split_type" groups="stock.group_production_lot"/>
+            <field name="track_internal" groups="stock.group_tracking_lot"/>
+            <field name="lot_split_type" groups="stock.group_tracking_lot"/>
         </xpath>
     </field>
 </record>
