@@ -1,6 +1,28 @@
 # -*- coding: utf-8 -*-
 
-from openerp import _, api, exceptions, models
+from openerp import _, api, fields, exceptions, models
+
+
+class StockProductionLot(models.Model):
+    _inherit = 'stock.production.lot'
+
+    @api.one
+    @api.depends('quant_ids')
+    def _get_last_location_id(self):
+        last_quant_data = self.env['stock.quant'].search_read(
+            [('id', 'in', self.quant_ids.ids)],
+            ['location_id'],
+            order='in_date DESC, id DESC',
+            limit=1)
+        if last_quant_data:
+            self.last_location_id = last_quant_data[0][
+                'location_id'][0]
+
+    last_location_id = fields.Many2one(
+        'stock.location',
+        string="Last location",
+        compute='_get_last_location_id',
+        store=True)
 
 
 class StockQuant(models.Model):
