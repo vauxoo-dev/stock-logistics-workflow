@@ -1,7 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <openerp>
     <data>
-        view_template_property_form
         <record id="view_product_unique_serial_form" model="ir.ui.view">
             <field name="name">view.product.unique.serial.form</field>
             <field name="model">product.template</field>

@@ -7,13 +7,13 @@ class StockQuant(models.Model):
     _inherit = 'stock.quant'
 
     @api.constrains('product_id', 'qty')
-    def _check_product_unique_serial_01_qty_one(self):
+    def _check_serial_01_qty_one(self):
         """
         Check move quantity to check that has qty = 1
         if 'lot unique' is ok on product
         """
         if self.product_id.lot_unique_ok and \
-           and (abs(self.qty) != 1 and self.qty != 0):
+           (abs(self.qty) != 1 and self.qty != 0):
             raise exceptions.ValidationError(_(
                 "Product '%s' has active"
                 " 'unique lot' "
@@ -21,7 +21,7 @@ class StockQuant(models.Model):
                 ) % (self.product_id.name))
 
     @api.constrains('product_id', 'lot_id')
-    def _check_product_unique_serial_02_qty_available_one(self):
+    def _check_serial_02_qty_available_one(self):
         """
         Check quantity on hand to check that has qty = 1
         if 'lot unique' is ok on product
