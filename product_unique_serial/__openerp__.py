@@ -8,7 +8,6 @@
     'depends': ['stock'],
     'data': [
         "views/product_view.xml",
-        # "views/stock_transfer_details.xml",
     ],
     'demo': [
     ],
