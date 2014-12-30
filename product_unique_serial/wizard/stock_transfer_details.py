@@ -40,12 +40,16 @@ class stock_transfer_details(models.TransientModel):
                         node.set('options', "{'no_create': True}")
                         # Don't show unused serial.
                         # allow to select a serial with moves.
-                        # DEPRECATED BY LAST LOCATION DOMAIN
-                        # sub_domain = "('quant_ids', '!=', False)"
+                        # TODO: Disable this option when
+                        #       fields.function last_location_id
+                        #       was fix it
+                        sub_domain = "('quant_ids', '!=', [])"
                         # Set domain to show only serial number
                         # that exists in source location
-                        sub_domain = "('last_location_id', '=', " + \
-                            "sourceloc_id)"
+                        # TODO: Enable when fields.function
+                        #       last_location_id was fix it
+                        # sub_domain = "('last_location_id', '=', " + \
+                        #     "sourceloc_id)"
                     else:
                         # Don't show old serial number
                         # just allow to create new one or
