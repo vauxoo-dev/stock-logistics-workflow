@@ -17,6 +17,8 @@ class StockProductionLot(models.Model):
         if last_quant_data:
             self.last_location_id = last_quant_data[0][
                 'location_id'][0]
+        else:
+            self.last_location_id = False
 
     last_location_id = fields.Many2one(
         'stock.location',
