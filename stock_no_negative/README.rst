@@ -20,7 +20,7 @@ To configure this module, you need to:
 * Go to inventory page.
 * Search field `Check no negative`
 * Assign True value.
-.. image:: https://www.diigo.com/item/t/%2FiK3r2%2BeZMbI70r1Jd%2F1UeYy6606EjKSvLk%2Fk9aPQfjxScM5yaAiZ5%2F4l%2BLE%0Aq%2FcQ%0A
+.. image:: https://www.diigo.com/file/image/rspobcrzcqsppdecczbrqdrasc/product_nonegative.jpg
  
 
 Usage
