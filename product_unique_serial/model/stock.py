@@ -35,64 +35,32 @@ class StockProductionLot(models.Model):
                       related="name", store=True, readonly=True)
 
 
-class StockMove(models.Model):
-    _inherit = 'stock.move'
+class StockQuant(models.Model):
+    _inherit = 'stock.quant'
 
-    def check_after_action_done(self, cr, uid, operation_or_move,
-                                lot_id=None, context=None):
-        super(StockMove, self).check_after_action_done(
-            cr, uid, operation_or_move,
-            lot_id, context=context)
-        return self.check_unicity_qty_available(
-            cr, uid, operation_or_move,
-            lot_id, context=context)
-
-    def check_unicity_move_qty(self, cr, uid, ids, context=None):
-        """
-        Check move quantity to verify that has qty = 1
-        if 'lot unique' is ok on product
-        """
-        if not isinstance(ids, list):
-            ids = [ids]
-        for move in self.browse(cr, uid, ids, context=context):
-            if move.product_id.lot_unique_ok:
-                for move_operation in \
-                        move.linked_move_operation_ids:
-                    if abs(move_operation.qty) > 1:
-                        raise exceptions.ValidationError(_(
-                            "Product '%s' has active"
-                            " 'unique lot' "
-                            "but has qty > 1"
-                            ) % (move.product_id.name))
-
-    def check_unicity_qty_available(self, cr, uid, operation_or_move,
-                                    lot_id,
-                                    context=None):
-        """
-        Check quantity on hand to verify that has qty = 1
-        if 'lot unique' is ok on product
-        """
-        if operation_or_move.product_id.lot_unique_ok and lot_id:
-            ctx = context.copy()
-            ctx.update({'lot_id': lot_id})
-            product_ctx = self.pool.get('product.product').browse(
-                cr, uid, [operation_or_move.product_id.id],
-                context=ctx)[0]
-            qty = product_ctx.qty_available
-            if not 0 <= qty <= 1:
-                lot = self.pool.get('stock.production.lot').browse(
-                    cr, uid, [lot_id])[0]
-                raise exceptions.ValidationError(_(
-                    "Product '%s' has active "
-                    "'unique lot'\n"
-                    "but with this move "
-                    "you will have a quantity of "
-                    "'%s' in lot '%s'"
-                    ) % (operation_or_move.product_id.name, qty, lot.name))
-        return True
-
-    def check_tracking(self, cr, uid, move, lot_id, context=None):
-        res = super(StockMove, self).check_tracking(
-            cr, uid, move, lot_id, context=context)
-        self.check_unicity_move_qty(cr, uid, [move.id], context=context)
-        return res
+    @api.model
+    def _quant_create(self, qty, move, lot_id=False, owner_id=False,
+                      src_package_id=False, dest_package_id=False,
+                      force_location_from=False, force_location_to=False):
+        # Take the following block from Odoo v9
+        # In case of 'Unique Lot' check if the product does not exist somewhere
+        # internally already
+        if lot_id and move.product_id.lot_unique_ok:
+            if qty != 1.0:
+                raise exceptions.Warning(_('You should only receive by '
+                                           'the piece with the same serial '
+                                           'number'))
+            other_quants = self.search([
+                ('product_id', '=', move.product_id.id),
+                ('lot_id', '=', lot_id),
+                ('qty', '>', 0.0),
+                # Added location production in domain to work in mrp.production
+                ('location_id.usage', 'in', ('internal', 'production'))])
+            if other_quants:
+                lot_name = self.env['stock.production.lot'].browse(lot_id).name
+                raise exceptions.Warning(_('The serial number %s can only '
+                                           'belong to a single product in '
+                                           'stock') % lot_name)
+        return super(StockQuant, self)._quant_create(
+            qty, move, lot_id, owner_id, src_package_id,
+            dest_package_id, force_location_from, force_location_to)
