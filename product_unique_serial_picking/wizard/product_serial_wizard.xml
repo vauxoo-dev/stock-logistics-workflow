@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<openerp>
+    <data>
+        <record id="view_set_product_serial" model="ir.ui.view">
+            <field name="name">Enter transfer details</field>
+            <field name="model">product.serial.wizard</field>
+            <field name="arch" type="xml">
+                <form string="Set Product Serials">
+                    <field name="picking_source_location_id" invisible="True"/>
+                    <field name="picking_destination_location_id" invisible="True"/>
+                    <field name="product_id" invisible="True"/>
+                    <group>
+                        <field name="lot_id"
+                            context="{'default_sourceloc_id':picking_source_location_id,
+                                      'default_destinationloc_id':picking_destination_location_id}" nolabel="1">
+                            <tree string="Serials" editable="bottom" >
+                                <field name="name" domain="[('product_id','=?', product_id)]" context="{'product_id': product_id}"/>
+                            </tree>
+                        </field>
+                    </group>
+                    <footer>
+                        <button name="set_serials" string="_Apply" type="object" class="oe_highlight"/>
+                        or
+                        <button string="_Cancel" class="oe_link" special="cancel" />
+                    </footer>
+                </form>
+            </field>
+        </record>
+
+    </data>
+</openerp>
