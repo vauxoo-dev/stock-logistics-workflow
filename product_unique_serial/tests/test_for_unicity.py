@@ -49,6 +49,9 @@ class TestUnicity(TransactionCase):
         self.stock_move_obj = self.env['stock.move']
         self.product_uom_obj = self.env['product.uom']
         self.stock_location_obj = self.env['stock.location']
+        self.stock_production_lot_obj = self.env['stock.production.lot']
+        self.mrp_production_obj = self.env['mrp.production']
+        self.product_produce_obj = self.env['mrp.product.produce']
 
     def create_stock_picking(self, moves_data, picking_data, picking_type):
         """ Returns the stock.picking object, with his respective created
@@ -132,10 +135,10 @@ class TestUnicity(TransactionCase):
             # Executing the picking transfering
             wizard_for_transfer.do_detailed_transfer()
 
-    def test_1_1product_1serialnumber_2p_in(self):
+    def test_1_1_1product_1serialnumber_2p_in(self):
         """
-        Test 1. Creating 2 pickings with 1 product for the same serial number,
-        in the receipts scope, with the next form:
+        Test 1.1. Creating 2 pickings with 1 product for the same serial
+        number, in the receipts scope, with the next form:
         - Picking 1 IN
         =============================================
         || Product ||  Quantity  ||  Serial Number ||
@@ -181,10 +184,67 @@ class TestUnicity(TransactionCase):
                 picking_2,
                 [self.env.ref('product_unique_serial.serial_number_demo_1')])
 
-    def test_2_1product_1serialnumber_2p_out(self):
+    def test_1_2_1product_1serialnumber_2p_in(self):
         """
-        Test 2. Creating 2 pickings with 1 product for the same serial number,
-        in the delivery orders scope, with the next form:
+        Test 1.2. (track incoming) Creating 2 pickings with 1 product for the
+        same serial number, in the receipts scope, with the next form:
+        - Picking 1 IN
+        =============================================
+        || Product ||  Quantity  ||  Serial Number ||
+        =============================================
+        ||    A    ||      1     ||      001       ||
+        =============================================
+        - Picking 2 IN
+        =============================================
+        || Product ||  Quantity  ||  Serial Number ||
+        =============================================
+        ||    A    ||      1     ||      001       ||
+        =============================================
+        Warehouse: Your Company
+        Comment: The product in this case should track_incoming
+                 instead of track all
+        """
+        # Creating move line for picking
+        product = self.env.ref('product_unique_serial.product_demo_1')
+        # track_production and lot_unique_ok to test unicity
+        self.assertTrue(product.write({'track_all': False,
+                                       'track_incoming': True,
+                                       'lot_unique_ok': True}),
+                        "Cannot check tracking incoming to product")
+
+        stock_move_datas = [{
+            'product_id': product.id,
+            'qty': 1.0
+        }]
+        # Creating the pickings
+        picking_data_1 = {
+            'name': 'Test Picking IN 1',
+        }
+        picking_data_2 = {
+            'name': 'Test Picking IN 2',
+        }
+        picking_1 = self.create_stock_picking(
+            stock_move_datas, picking_data_1,
+            self.env.ref('stock.picking_type_in'))
+        picking_2 = self.create_stock_picking(
+            stock_move_datas, picking_data_2,
+            self.env.ref('stock.picking_type_in'))
+        # Executing the wizard for pickings transfering
+        self.transfer_picking(
+            picking_1,
+            self.env.ref('product_unique_serial.serial_number_demo_1'))
+        with self.assertRaisesRegexp(
+                exceptions.Warning,
+                "The serial number 86137801852514 can only belong to"
+                " a single product in stock"):
+            self.transfer_picking(
+                picking_2,
+                [self.env.ref('product_unique_serial.serial_number_demo_1')])
+
+    def test_2_1_1product_1serialnumber_2p_out(self):
+        """
+        Test 2.1. Creating 2 pickings with 1 product for the same serial
+        number, in the delivery orders scope, with the next form:
         - Picking 1 OUT
         =============================================
         || Product ||  Quantity  ||  Serial Number ||
@@ -202,6 +262,75 @@ class TestUnicity(TransactionCase):
         """
         # Creating move line for picking
         product = self.env.ref('product_unique_serial.product_demo_1')
+        stock_move_datas = [{
+            'product_id': product.id,
+            'qty': 1.0
+        }]
+        # Creating the pickings
+        picking_data_in = {
+            'name': 'Test Picking IN 1',
+        }
+        picking_data_out_1 = {
+            'name': 'Test Picking OUT 1',
+        }
+        picking_data_out_2 = {
+            'name': 'Test Picking OUT 2',
+        }
+        # IN PROCESS
+        picking_in = self.create_stock_picking(
+            stock_move_datas, picking_data_in,
+            self.env.ref('stock.picking_type_in'))
+        self.transfer_picking(
+            picking_in,
+            self.env.ref('product_unique_serial.serial_number_demo_1'))
+        # OUT PROCESS
+        picking_out_1 = self.create_stock_picking(
+            stock_move_datas, picking_data_out_1,
+            self.env.ref('stock.picking_type_out'))
+        picking_out_2 = self.create_stock_picking(
+            stock_move_datas, picking_data_out_2,
+            self.env.ref('stock.picking_type_out'))
+        # Executing the wizard for pickings transfering
+        self.transfer_picking(
+            picking_out_1,
+            self.env.ref('product_unique_serial.serial_number_demo_1'))
+        with self.assertRaisesRegexp(
+                exceptions.Warning,
+                "The serial number 86137801852514 can only belong to"
+                " a single product in stock"):
+            self.transfer_picking(
+                picking_out_2,
+                [self.env.ref('product_unique_serial.serial_number_demo_1')])
+
+    def test_2_2_1product_1serialnumber_2p_out(self):
+        """
+        Test 2.2. (track outgoing) Creating 2 pickings with 1 product for the
+        same serial number, in the delivery orders scope, with the next form:
+        - Picking 1 OUT
+        =============================================
+        || Product ||  Quantity  ||  Serial Number ||
+        =============================================
+        ||    A    ||      1     ||      001       ||
+        =============================================
+        - Picking 2 OUT
+        =============================================
+        || Product ||  Quantity  ||  Serial Number ||
+        =============================================
+        ||    A    ||      1     ||      001       ||
+        =============================================
+        NOTE: To can operate this case, we need an IN PICKING
+        Warehouse: Your Company
+        Comment: The product in this case should be check track_outgoing
+                 instead of track all
+        """
+        # Creating move line for picking
+        product = self.env.ref('product_unique_serial.product_demo_1')
+        # track_production and lot_unique_ok to test unicity
+        self.assertTrue(product.write({'track_all': False,
+                                       'track_outgoing': True,
+                                       'lot_unique_ok': True}),
+                        "Cannot check tracking outgoing to product")
+
         stock_move_datas = [{
             'product_id': product.id,
             'qty': 1.0
@@ -394,3 +523,78 @@ class TestUnicity(TransactionCase):
         with self.assertRaisesRegexp(
                 IntegrityError, r'"stock_production_lot_name_ref_uniq"'):
             self.stock_production_lot_obj.create(lot_data)
+
+    def test_7_1product_1serial_number_production(self):
+        """
+        Test 6. Creating a production order with 1 product as material,
+        2 quantities in different lines with 1 serial number for both
+        """
+        bom = self.env.ref('mrp.mrp_bom_1')
+        sh1 = self.env.ref('product.product_product_17_product_template')
+        sh2 = self.env.ref('product.product_product_18_product_template')
+        uom = self.env.ref('product.product_uom_unit')
+        stock = self.env.ref('stock.stock_location_stock')
+
+        # Create a Production Order
+        production_order = self.mrp_production_obj.create({
+            'product_id': sh2.id,
+            'bom_id': bom.id,
+            'product_qty': 1.00,
+            'product_uom': uom.id,
+            'location_src_id': stock.id,
+            'location_dest_id': stock.id
+        })
+        # track_production and lot_unique_ok to test unicity in production
+        self.assertTrue(sh1.write({'track_production': True,
+                                   'lot_unique_ok': True}),
+                        "Cannot check tracking production to product")
+        # Check initial state
+        self.assertEqual(production_order.state, 'draft',
+                         'Initial state should be in "draft"')
+        # Change next state and check it
+        production_order.signal_workflow('button_confirm')
+        self.assertEqual(production_order.state, 'confirmed',
+                         "Signal 'confirm' don't work fine!")
+        # Change next state and check it
+        production_order.action_assign()
+        self.assertEqual(production_order.state, 'ready',
+                         "Signal 'ready' don't work fine or product "
+                         "is not available!")
+        # Simulate click on the "Produce" button to run the product
+        # produce wizard.
+        wiz = self.product_produce_obj.with_context({
+            'active_id': production_order.id,
+            'active_ids': [production_order.id],
+            'active_model': 'mrp.production',
+        }).create({'mode': 'consume'})
+
+        consume_lines = wiz.on_change_qty(production_order.product_qty,
+                                          [])['value']['consume_lines']
+        # check if consume_lines has values
+        self.assertTrue(len(consume_lines) > 0,
+                        "Consume lines should have at least one item")
+        lot_vals = {
+            'name': 'AB-092134',
+            'product_id': consume_lines[0][2]['product_id']
+        }
+        lot_line = self.stock_production_lot_obj.create(lot_vals)
+
+        product_qty = consume_lines[0][2]['product_qty']
+        product_id = consume_lines[0][2]['product_id']
+        new_consume_lines = []
+        # split quantities to consume lines
+        for i in range(int(product_qty)):
+            line = [0, False, {'lot_id': lot_line.id,
+                               'product_id': product_id,
+                               'product_qty': 1.0}]
+            new_consume_lines.append(line)
+        # check if new consume_lines has values
+        self.assertTrue(len(new_consume_lines) > 1,
+                        "Consume lines should have more than 1 line")
+        wiz.write({'consume_lines': new_consume_lines})
+        # Error raised expected with message expected.
+        with self.assertRaisesRegexp(
+                exceptions.Warning,
+                "The serial number %s can only belong to"
+                " a single product in stock" % lot_vals['name']):
+            wiz.do_produce()
