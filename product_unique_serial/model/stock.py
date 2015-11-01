@@ -1,5 +1,23 @@
-# -*- coding: utf-8 -*-
-
+# coding: utf-8
+##############################################################################
+#
+#    Odoo, Open Source Management Solution
+#    Copyright (C) 2007-2015 (<https://vauxoo.com>).
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU Affero General Public License as
+#    published by the Free Software Foundation, either version 3 of the
+#    License, or (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU Affero General Public License for more details.
+#
+#    You should have received a copy of the GNU Affero General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+##############################################################################
 from openerp import _, api, fields, exceptions, models
 
 
@@ -42,20 +60,31 @@ class StockQuant(models.Model):
     def _quant_create(self, qty, move, lot_id=False, owner_id=False,
                       src_package_id=False, dest_package_id=False,
                       force_location_from=False, force_location_to=False):
-        # Take the following block from Odoo v9
         # In case of 'Unique Lot' check if the product does not exist somewhere
         # internally already
         if lot_id and move.product_id.lot_unique_ok:
+            # Extract from Odoo v9
             if qty != 1.0:
                 raise exceptions.Warning(_('You should only receive by '
                                            'the piece with the same serial '
                                            'number'))
-            other_quants = self.search([
+            # Customize domain
+            domain_quants = [
                 ('product_id', '=', move.product_id.id),
                 ('lot_id', '=', lot_id),
-                ('qty', '>', 0.0),
-                # Added location production in domain to work in mrp.production
-                ('location_id.usage', 'in', ('internal', 'production'))])
+                ('qty', '>', 0.0)
+            ]
+            # Check product tracking field to get location usage for domain
+            if move.product_id.track_all:
+                domain_quants += [('location_id.usage', '!=', 'inventory')]
+            elif move.product_id.track_incoming:
+                domain_quants += [('location_id.usage', '=', 'internal')]
+            elif move.product_id.track_outgoing:
+                usages = ['customer', 'transit']
+                domain_quants += [('location_id.usage', 'in', tuple(usages))]
+            elif move.product_id.track_production:
+                domain_quants += [('location_id.usage', '=', 'production')]
+            other_quants = self.search(domain_quants)
             if other_quants:
                 lot_name = self.env['stock.production.lot'].browse(lot_id).name
                 raise exceptions.Warning(_('The serial number %s can only '
