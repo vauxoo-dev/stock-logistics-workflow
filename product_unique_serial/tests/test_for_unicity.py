@@ -1,4 +1,4 @@
-# -*- encoding: utf-8 -*-
+# coding: utf-8
 ###############################################################################
 #    Module Writen to OpenERP, Open Source Management Solution
 #
@@ -26,8 +26,8 @@
 
 from copy import deepcopy
 
+from openerp import exceptions
 from openerp.tests.common import TransactionCase
-from openerp.exceptions import except_orm
 from openerp.tools import mute_logger
 from psycopg2 import IntegrityError
 
@@ -136,13 +136,13 @@ class TestUnicity(TransactionCase):
         """
         Test 1. Creating 2 pickings with 1 product for the same serial number,
         in the receipts scope, with the next form:
-        - Picking 1
+        - Picking 1 IN
         =============================================
         || Product ||  Quantity  ||  Serial Number ||
         =============================================
         ||    A    ||      1     ||      001       ||
         =============================================
-        - Picking 2
+        - Picking 2 IN
         =============================================
         || Product ||  Quantity  ||  Serial Number ||
         =============================================
@@ -173,10 +173,7 @@ class TestUnicity(TransactionCase):
         self.transfer_picking(
             picking_1,
             self.env.ref('product_unique_serial.serial_number_demo_1'))
-        with self.assertRaisesRegexp(
-                except_orm,
-                r"you will have a quantity of '2.0' "
-                r"in lot '86137801852514'"):
+        with self.assertRaises(exceptions.Warning):
             self.transfer_picking(
                 picking_2,
                 [self.env.ref('product_unique_serial.serial_number_demo_1')])
@@ -185,13 +182,13 @@ class TestUnicity(TransactionCase):
         """
         Test 2. Creating 2 pickings with 1 product for the same serial number,
         in the delivery orders scope, with the next form:
-        - Picking 1
+        - Picking 1 OUT
         =============================================
         || Product ||  Quantity  ||  Serial Number ||
         =============================================
         ||    A    ||      1     ||      001       ||
         =============================================
-        - Picking 2
+        - Picking 2 OUT
         =============================================
         || Product ||  Quantity  ||  Serial Number ||
         =============================================
@@ -234,10 +231,7 @@ class TestUnicity(TransactionCase):
         self.transfer_picking(
             picking_out_1,
             self.env.ref('product_unique_serial.serial_number_demo_1'))
-        with self.assertRaisesRegexp(
-                except_orm,
-                r"you will have a quantity of '-1.0' "
-                r"in lot '86137801852514'"):
+        with self.assertRaises(exceptions.Warning):
             self.transfer_picking(
                 picking_out_2,
                 [self.env.ref('product_unique_serial.serial_number_demo_1')])
@@ -246,7 +240,7 @@ class TestUnicity(TransactionCase):
         """
         Test 3. Creating a picking with 1 product for the same serial number,
         in the delivery orders scope, with the next form:
-        - Picking 1
+        - Picking 1 IN
         =============================================
         || Product ||  Quantity  ||  Serial Number ||
         =============================================
@@ -268,7 +262,7 @@ class TestUnicity(TransactionCase):
             stock_move_datas, picking_data_1,
             self.env.ref('stock.picking_type_in'))
         # Executing the wizard for pickings transfering
-        with self.assertRaisesRegexp(except_orm, r'but has qty > 1'):
+        with self.assertRaises(exceptions.Warning):
             self.transfer_picking(
                 picking_1,
                 [self.env.ref('product_unique_serial.serial_number_demo_2')])
@@ -316,13 +310,13 @@ class TestUnicity(TransactionCase):
         """
         Test 5. Creating 2 pickings with 1 product for the same serial number,
         in the internal scope, with the next form:
-        - Picking 1
+        - Picking 1 INTERNAL
         =============================================
         || Product ||  Quantity  ||  Serial Number ||
         =============================================
         ||    A    ||      1     ||      001       ||
         =============================================
-        - Picking 2
+        - Picking 2 INTERNAL
         =============================================
         || Product ||  Quantity  ||  Serial Number ||
         =============================================
@@ -369,9 +363,7 @@ class TestUnicity(TransactionCase):
         self.transfer_picking(
             picking_internal_1,
             [self.env.ref('product_unique_serial.serial_number_demo_1')])
-        with self.assertRaisesRegexp(
-                except_orm,
-                r"Product 'Nokia 2630' has active 'check no negative'"):
+        with self.assertRaises(exceptions.ValidationError):
             self.transfer_picking(
                 picking_internal_2,
                 [self.env.ref('product_unique_serial.serial_number_demo_1')])
@@ -388,6 +380,5 @@ class TestUnicity(TransactionCase):
             'product_id': product_id.id
         }
         self.stock_production_lot_obj.create(lot_data)
-        with self.assertRaisesRegexp(
-                IntegrityError, r'"stock_production_lot_name_ref_uniq"'):
+        with self.assertRaises(IntegrityError):
             self.stock_production_lot_obj.create(lot_data)
