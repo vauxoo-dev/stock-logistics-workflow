@@ -24,25 +24,22 @@ from openerp import _, api, fields, exceptions, models
 class StockProductionLot(models.Model):
     _inherit = 'stock.production.lot'
 
-    @api.one
-    @api.depends('quant_ids')
+    @api.multi
+    @api.depends('quant_ids.location_id')
     def _get_last_location_id(self):
-        last_quant_data = self.env['stock.quant'].search_read(
-            [('id', 'in', self.quant_ids.ids)],
-            ['location_id'],
-            order='in_date DESC, id DESC',
-            limit=1)
-        if last_quant_data:
-            self.last_location_id = last_quant_data[0][
-                'location_id'][0]
-        else:
-            self.last_location_id = False
+        for record in self:
+            if record.quant_ids.ids:
+                last_quant_id = max(record.quant_ids.ids)
+                last_quant_data = self.env['stock.quant'].browse(last_quant_id)
+                record.last_location_id = last_quant_data.location_id.id
+            else:
+                record.last_location_id = False
 
     last_location_id = fields.Many2one(
         'stock.location',
-        string="Last location",
+        string="Last Location",
         compute='_get_last_location_id',
-        store=True)  # TODO: Fix fails recomputed
+        store=True)
 
     # Overwrite field to deny create serial number duplicated
     ref = fields.Char('Internal Reference',
