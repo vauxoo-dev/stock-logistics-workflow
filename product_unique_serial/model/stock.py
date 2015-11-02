@@ -74,15 +74,21 @@ class StockQuant(models.Model):
             # Check product tracking field to get location usage for domain
             if move.product_id.track_all:
                 domain_quants += [('location_id.usage', '!=', 'inventory')]
-            elif move.product_id.track_incoming:
-                domain_quants += [('location_id.usage', '=', 'internal')]
-            elif move.product_id.track_outgoing:
-                usages = ['customer', 'transit']
-                domain_quants += [('location_id.usage', 'in', tuple(usages))]
-            elif move.product_id.track_production:
-                domain_quants += [('location_id.usage', '=', 'production')]
-            other_quants = self.search(domain_quants)
-            if other_quants:
+            else:
+                usages = []
+                if move.product_id.track_incoming:
+                    usages += ['internal']
+                if move.product_id.track_outgoing:
+                    usages += ['customer', 'transit']
+                # mrp module should be installed to use track production field
+                if hasattr(move.product_id, "track_production") and \
+                        move.product_id.track_production:
+                    usages += ['production']
+                if usages:
+                    domain_quants += [
+                        ('location_id.usage', 'in', tuple(usages))]
+            # check if exist other similar quant
+            if self.search(domain_quants):
                 lot_name = self.env['stock.production.lot'].browse(lot_id).name
                 raise exceptions.Warning(_('The serial number %s can only '
                                            'belong to a single product in '
