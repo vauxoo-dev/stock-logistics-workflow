@@ -6,9 +6,9 @@
             <field name="model">product.serial.wizard</field>
             <field name="arch" type="xml">
                 <form string="Set Product Serials">
-                    <field name="picking_source_location_id" invisible="True"/>
-                    <field name="picking_destination_location_id" invisible="True"/>
-                    <field name="product_id" invisible="True"/>
+                    <field name="picking_source_location_id" readonly="True"/>
+                    <field name="picking_destination_location_id" readonly="True"/>
+                    <field name="product_id" readonly="True"/>
                     <group>
                         <field name="lot_id"
                             context="{'default_sourceloc_id':picking_source_location_id,

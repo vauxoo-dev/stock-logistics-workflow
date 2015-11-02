@@ -1,4 +1,3 @@
-Product Unique Serial Number
+Product Unique Serial Number Setter
 ==================
-Add a field to product to activate check if is a product unique serial number.
-Add a check constraint to deny stock moves with quantity different to 1 if has unique serial number as True.
+Improve the way to add product unique serial number.
