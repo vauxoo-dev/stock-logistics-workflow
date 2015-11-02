@@ -7,8 +7,8 @@
     'version': '1.0',
     'depends': ['product_unique_serial'],
     'data': [
-        'wizard/product_serial_wizard.xml',
         "views/stock_view.xml",
+        'wizard/product_serial_wizard.xml',
     ],
     'demo': [
     ],
