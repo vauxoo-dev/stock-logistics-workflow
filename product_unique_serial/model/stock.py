@@ -1,30 +1,45 @@
-# -*- coding: utf-8 -*-
-
+# coding: utf-8
+##############################################################################
+#
+#    Odoo, Open Source Management Solution
+#    Copyright (C) 2007-2015 (<https://vauxoo.com>).
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU Affero General Public License as
+#    published by the Free Software Foundation, either version 3 of the
+#    License, or (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU Affero General Public License for more details.
+#
+#    You should have received a copy of the GNU Affero General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+##############################################################################
 from openerp import _, api, fields, exceptions, models
 
 
 class StockProductionLot(models.Model):
     _inherit = 'stock.production.lot'
 
-    @api.one
-    @api.depends('quant_ids')
+    @api.multi
+    @api.depends('quant_ids.location_id')
     def _get_last_location_id(self):
-        last_quant_data = self.env['stock.quant'].search_read(
-            [('id', 'in', self.quant_ids.ids)],
-            ['location_id'],
-            order='in_date DESC, id DESC',
-            limit=1)
-        if last_quant_data:
-            self.last_location_id = last_quant_data[0][
-                'location_id'][0]
-        else:
-            self.last_location_id = False
+        for record in self:
+            if record.quant_ids.ids:
+                last_quant_id = max(record.quant_ids.ids)
+                last_quant_data = self.env['stock.quant'].browse(last_quant_id)
+                record.last_location_id = last_quant_data.location_id.id
+            else:
+                record.last_location_id = False
 
     last_location_id = fields.Many2one(
         'stock.location',
-        string="Last location",
+        string="Last Location",
         compute='_get_last_location_id',
-        store=True)  # TODO: Fix fails recomputed
+        store=True)
 
     # Overwrite field to deny create serial number duplicated
     ref = fields.Char('Internal Reference',
@@ -35,64 +50,49 @@ class StockProductionLot(models.Model):
                       related="name", store=True, readonly=True)
 
 
-class StockMove(models.Model):
-    _inherit = 'stock.move'
+class StockQuant(models.Model):
+    _inherit = 'stock.quant'
 
-    def check_after_action_done(self, cr, uid, operation_or_move,
-                                lot_id=None, context=None):
-        super(StockMove, self).check_after_action_done(
-            cr, uid, operation_or_move,
-            lot_id, context=context)
-        return self.check_unicity_qty_available(
-            cr, uid, operation_or_move,
-            lot_id, context=context)
-
-    def check_unicity_move_qty(self, cr, uid, ids, context=None):
-        """
-        Check move quantity to verify that has qty = 1
-        if 'lot unique' is ok on product
-        """
-        if not isinstance(ids, list):
-            ids = [ids]
-        for move in self.browse(cr, uid, ids, context=context):
-            if move.product_id.lot_unique_ok:
-                for move_operation in \
-                        move.linked_move_operation_ids:
-                    if abs(move_operation.qty) > 1:
-                        raise exceptions.ValidationError(_(
-                            "Product '%s' has active"
-                            " 'unique lot' "
-                            "but has qty > 1"
-                            ) % (move.product_id.name))
-
-    def check_unicity_qty_available(self, cr, uid, operation_or_move,
-                                    lot_id,
-                                    context=None):
-        """
-        Check quantity on hand to verify that has qty = 1
-        if 'lot unique' is ok on product
-        """
-        if operation_or_move.product_id.lot_unique_ok and lot_id:
-            ctx = context.copy()
-            ctx.update({'lot_id': lot_id})
-            product_ctx = self.pool.get('product.product').browse(
-                cr, uid, [operation_or_move.product_id.id],
-                context=ctx)[0]
-            qty = product_ctx.qty_available
-            if not 0 <= qty <= 1:
-                lot = self.pool.get('stock.production.lot').browse(
-                    cr, uid, [lot_id])[0]
-                raise exceptions.ValidationError(_(
-                    "Product '%s' has active "
-                    "'unique lot'\n"
-                    "but with this move "
-                    "you will have a quantity of "
-                    "'%s' in lot '%s'"
-                    ) % (operation_or_move.product_id.name, qty, lot.name))
-        return True
-
-    def check_tracking(self, cr, uid, move, lot_id, context=None):
-        res = super(StockMove, self).check_tracking(
-            cr, uid, move, lot_id, context=context)
-        self.check_unicity_move_qty(cr, uid, [move.id], context=context)
-        return res
+    @api.model
+    def _quant_create(self, qty, move, lot_id=False, owner_id=False,
+                      src_package_id=False, dest_package_id=False,
+                      force_location_from=False, force_location_to=False):
+        # In case of 'Unique Lot' check if the product does not exist somewhere
+        # internally already
+        if lot_id and move.product_id.lot_unique_ok:
+            # Extract from Odoo v9
+            if qty != 1.0:
+                raise exceptions.Warning(_('You should only receive by '
+                                           'the piece with the same serial '
+                                           'number'))
+            # Customize domain
+            domain_quants = [
+                ('product_id', '=', move.product_id.id),
+                ('lot_id', '=', lot_id),
+                ('qty', '>', 0.0)
+            ]
+            # Check product tracking field to get location usage for domain
+            if move.product_id.track_all:
+                domain_quants += [('location_id.usage', '!=', 'inventory')]
+            else:
+                usages = []
+                if move.product_id.track_incoming:
+                    usages += ['internal']
+                if move.product_id.track_outgoing:
+                    usages += ['customer', 'transit']
+                # mrp module should be installed to use track production field
+                if hasattr(move.product_id, "track_production") and \
+                        move.product_id.track_production:
+                    usages += ['production']
+                if usages:
+                    domain_quants += [
+                        ('location_id.usage', 'in', tuple(usages))]
+            # check if exist other similar quant
+            if self.search(domain_quants):
+                lot_name = self.env['stock.production.lot'].browse(lot_id).name
+                raise exceptions.Warning(_('The serial number %s can only '
+                                           'belong to a single product in '
+                                           'stock') % lot_name)
+        return super(StockQuant, self)._quant_create(
+            qty, move, lot_id, owner_id, src_package_id,
+            dest_package_id, force_location_from, force_location_to)

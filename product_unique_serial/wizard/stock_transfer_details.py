@@ -1,5 +1,23 @@
-# -*- coding: utf-8 -*-
-
+# coding: utf-8
+##############################################################################
+#
+#    Odoo, Open Source Management Solution
+#    Copyright (C) 2007-2015 (<https://vauxoo.com>).
+#
+#    This program is free software: you can redistribute it and/or modify
+#    it under the terms of the GNU Affero General Public License as
+#    published by the Free Software Foundation, either version 3 of the
+#    License, or (at your option) any later version.
+#
+#    This program is distributed in the hope that it will be useful,
+#    but WITHOUT ANY WARRANTY; without even the implied warranty of
+#    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#    GNU Affero General Public License for more details.
+#
+#    You should have received a copy of the GNU Affero General Public License
+#    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+#
+##############################################################################
 from lxml import etree
 
 from openerp import models, api
@@ -38,18 +56,10 @@ class StockTransferDetails(models.TransientModel):
                 for node in doc.xpath("//field[@name='lot_id']"):
                     if picking.picking_type_id.code != 'incoming':
                         node.set('options', "{'no_create': True}")
-                        # Don't show unused serial.
-                        # allow to select a serial with moves.
-                        # TODO: Disable this option when
-                        #       fields.function last_location_id
-                        #       was fix it
-                        sub_domain = "('quant_ids', '!=', [])"
                         # Set domain to show only serial number
                         # that exists in source location
-                        # TODO: Enable when fields.function
-                        #       last_location_id was fix it
-                        # sub_domain = "('last_location_id', '=', " + \
-                        #     "sourceloc_id)"
+                        sub_domain = "('last_location_id', '=', " + \
+                            "sourceloc_id)"
                     else:
                         # Don't show old serial number
                         # just allow to create new one or
