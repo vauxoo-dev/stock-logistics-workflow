@@ -19,6 +19,7 @@
 #
 ##############################################################################
 from openerp import _, api, fields, exceptions, models
+from openerp.exceptions import ValidationError
 
 
 class StockProductionLot(models.Model):
@@ -96,3 +97,47 @@ class StockQuant(models.Model):
         return super(StockQuant, self)._quant_create(
             qty, move, lot_id, owner_id, src_package_id,
             dest_package_id, force_location_from, force_location_to)
+
+    @api.multi
+    @api.constrains('product_id', 'lot_id', 'qty')
+    def _check_inicity_lot_product(self):
+        for line in self:
+            if line.lot_id and line.product_id and\
+                    line.product_id.lot_unique_ok:
+                note = _(
+                    'When you select a serial number (lot), the quantity is '
+                    'corrected with respect to\nthe quantity of that serial '
+                    'number (lot) and not to the total quantity of the '
+                    'product.')
+                quants = self.search([
+                    ('lot_id', '=', line.lot_id.id),
+                    ('product_id', '=', line.product_id.id),
+                    ('company_id', '=', line.company_id.id),
+                    ('location_id', '=', line.location_id.id)])
+                if line.qty > 1:
+                    raise ValidationError(_(
+                        'The product %s has active unique lot and you '
+                        'try set %s in the lot %s.\nRemmember:\n %s' % (
+                            line.product_id.name, line.qty,
+                            line.lot_id.name, note)))
+                elif sum([x.qty for x in quants]) > 1:
+                    raise ValidationError(_(
+                        'The product %s has active unique lot and you '
+                        'try set more products in the same lot '
+                        '%s.\nRemmember:\n %s' % (
+                            line.product_id.name, line.lot_id.name, note)))
+
+
+class StockInventoryLine(models.Model):
+    _inherit = 'stock.inventory.line'
+
+    @api.multi
+    @api.constrains('product_id', 'prod_lot_id', 'product_qty')
+    def _ckeck_qty_line(self):
+        for line in self:
+            if line.product_id.track_all and not line.prod_lot_id and\
+                    not line.product_qty:
+                raise ValidationError(_(
+                    'The product %s has active "Full Lots Traceability", you '
+                    'must assign the serial number to update the quantity.'
+                    % line.product_id.name))

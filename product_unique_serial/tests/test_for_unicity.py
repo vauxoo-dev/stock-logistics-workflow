@@ -28,6 +28,7 @@ from copy import deepcopy
 
 from openerp import exceptions
 from openerp.tests.common import TransactionCase
+from openerp.exceptions import except_orm, ValidationError
 from openerp.tools import mute_logger
 from psycopg2 import IntegrityError
 
@@ -49,6 +50,10 @@ class TestUnicity(TransactionCase):
         self.stock_move_obj = self.env['stock.move']
         self.product_uom_obj = self.env['product.uom']
         self.stock_location_obj = self.env['stock.location']
+        self.stock_inventory_obj = self.env['stock.inventory']
+        self.stock_inventory_line_obj = self.env['stock.inventory.line']
+        self.stock_loc = self.env.ref('stock.stock_location_stock')
+        self.prod_d1 = self.env.ref('product_unique_serial.product_demo_1')
         self.stock_production_lot_obj = self.env['stock.production.lot']
 
     def create_stock_picking(self, moves_data, picking_data, picking_type):
@@ -174,10 +179,7 @@ class TestUnicity(TransactionCase):
         self.transfer_picking(
             picking_1,
             self.env.ref('product_unique_serial.serial_number_demo_1'))
-        with self.assertRaisesRegexp(
-                exceptions.Warning,
-                "The serial number 86137801852514 can only belong to"
-                " a single product in stock"):
+        with self.assertRaises(exceptions.Warning):
             self.transfer_picking(
                 picking_2,
                 [self.env.ref('product_unique_serial.serial_number_demo_1')])
@@ -231,10 +233,7 @@ class TestUnicity(TransactionCase):
         self.transfer_picking(
             picking_1,
             self.env.ref('product_unique_serial.serial_number_demo_1'))
-        with self.assertRaisesRegexp(
-                exceptions.Warning,
-                "The serial number 86137801852514 can only belong to"
-                " a single product in stock"):
+        with self.assertRaises(exceptions.Warning):
             self.transfer_picking(
                 picking_2,
                 [self.env.ref('product_unique_serial.serial_number_demo_1')])
@@ -361,10 +360,7 @@ class TestUnicity(TransactionCase):
         self.transfer_picking(
             picking_out_1,
             self.env.ref('product_unique_serial.serial_number_demo_1'))
-        with self.assertRaisesRegexp(
-                exceptions.Warning,
-                "The serial number 86137801852514 can only belong to"
-                " a single product in stock"):
+        with self.assertRaises(exceptions.Warning):
             self.transfer_picking(
                 picking_out_2,
                 [self.env.ref('product_unique_serial.serial_number_demo_1')])
@@ -395,10 +391,7 @@ class TestUnicity(TransactionCase):
             stock_move_datas, picking_data_1,
             self.env.ref('stock.picking_type_in'))
         # Executing the wizard for pickings transfering
-        with self.assertRaisesRegexp(
-                exceptions.Warning,
-                "You should only receive by the piece with the same serial "
-                "number"):
+        with self.assertRaises(exceptions.Warning):
             self.transfer_picking(
                 picking_1,
                 [self.env.ref('product_unique_serial.serial_number_demo_2')])
@@ -499,9 +492,7 @@ class TestUnicity(TransactionCase):
         self.transfer_picking(
             picking_internal_1,
             [self.env.ref('product_unique_serial.serial_number_demo_1')])
-        with self.assertRaisesRegexp(
-                exceptions.ValidationError,
-                "Product 'Nokia 2630' has active 'check no negative'"):
+        with self.assertRaises(except_orm):
             self.transfer_picking(
                 picking_internal_2,
                 [self.env.ref('product_unique_serial.serial_number_demo_1')])
@@ -518,8 +509,7 @@ class TestUnicity(TransactionCase):
             'product_id': product_id.id
         }
         self.stock_production_lot_obj.create(lot_data)
-        with self.assertRaisesRegexp(
-                IntegrityError, r'"stock_production_lot_name_ref_uniq"'):
+        with self.assertRaises(IntegrityError):
             self.stock_production_lot_obj.create(lot_data)
 
     def test_7_1_1product_1serialnumber_track_production_in(self):
@@ -613,3 +603,23 @@ class TestUnicity(TransactionCase):
                 "The serial number %s can only belong to"
                 " a single product in stock" % lot_vals['name']):
             stock_move_2.action_done()
+
+    def test_8_inventory_adjustment(self):
+        """Test 8. It tries to adjust inventory for a product that has \
+        selected 'unique piece' with as much new 1"""
+        stock_inv = self.stock_inventory_obj.create({
+            'name': 'Adjust Test',
+            'location_id': self.stock_loc.id,
+            'filter': 'product',
+            'product_id': self.prod_d1.id})
+        stock_inv.prepare_inventory()
+        self.stock_inventory_line_obj.create({
+            'product_id': self.prod_d1.id,
+            'location_id': self.stock_loc.id,
+            'prod_lot_id': self.env.ref(
+                'product_unique_serial.serial_number_demo_4').id,
+            'product_qty': 5,
+            'inventory_id': stock_inv.id
+        })
+        with self.assertRaises(exceptions.Warning):
+            stock_inv.action_done()
