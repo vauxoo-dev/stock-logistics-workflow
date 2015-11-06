@@ -28,7 +28,7 @@ from copy import deepcopy
 
 from openerp import exceptions
 from openerp.tests.common import TransactionCase
-from openerp.exceptions import except_orm, ValidationError
+from openerp.exceptions import except_orm
 from openerp.tools import mute_logger
 from psycopg2 import IntegrityError
 
