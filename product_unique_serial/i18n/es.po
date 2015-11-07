@@ -6,25 +6,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: Odoo Server 8.0\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2015-10-24 22:43+0000\n"
-"PO-Revision-Date: 2015-10-24 22:43+0000\n"
-"Last-Translator: <>\n"
-"Language-Team: \n"
-"MIME-Version: 1.0\n"
-"Content-Type: text/plain; charset=UTF-8\n"
-"Content-Transfer-Encoding: \n"
-"Plural-Forms: \n"
-
-# Translation of Odoo Server.
-# This file contains the translation of the following modules:
-#   * product_unique_serial
-#
-msgid ""
-msgstr ""
-"Project-Id-Version: Odoo Server 8.0\n"
-"Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2015-11-03 22:43+0000\n"
-"PO-Revision-Date: 2015-11-03 22:43+0000\n"
+"POT-Creation-Date: 2015-11-06 23:58+0000\n"
+"PO-Revision-Date: 2015-11-06 23:58+0000\n"
 "Last-Translator: <>\n"
 "Language-Team: \n"
 "MIME-Version: 1.0\n"
@@ -54,7 +37,7 @@ msgstr "Línea inventario"
 
 #. module: product_unique_serial
 #: field:stock.production.lot,last_location_id:0
-msgid "Last location"
+msgid "Last Location"
 msgstr "Última ubicación"
 
 #. module: product_unique_serial
@@ -73,20 +56,6 @@ msgid "Picking wizard"
 msgstr "Asistente de albarán"
 
 #. module: product_unique_serial
-#: code:addons/product_unique_serial/model/stock.py:84
-#, python-format
-msgid "Product '%s' has active 'unique lot'\n"
-"but with this move you will have a quantity of '%s' in lot '%s'"
-msgstr "El producto '%s' tiene activado 'lote único'\n"
-"pero con este movimiento se tendá una cantidad de '%s' en el lote '%s'"
-
-#. module: product_unique_serial
-#: code:addons/product_unique_serial/model/stock.py:61
-#, python-format
-msgid "Product '%s' has active 'unique lot' but has qty > 1"
-msgstr "El producto '%s' tiene activado 'lote único', pero tiene cantidad > 1"
-
-#. module: product_unique_serial
 #: model:ir.model,name:product_unique_serial.model_product_template
 msgid "Product Template"
 msgstr "Plantilla de producto"
@@ -97,36 +66,37 @@ msgid "Quants"
 msgstr "Quants"
 
 #. module: product_unique_serial
-#: model:ir.model,name:product_unique_serial.model_stock_move
-msgid "Stock Move"
-msgstr "Movimiento de existencias"
-
-#. module: product_unique_serial
-#: code:addons/product_unique_serial/model/stock.py:141
+#: code:addons/product_unique_serial/model/stock.py:140
 #: code:addons/product_unique_serial/wizard/stock_change_product_qty.py:21
 #, python-format
 msgid "The product %s has active \"Full Lots Traceability\", you must assign the serial number to update the quantity."
 msgstr "El producto %s tiene activado \"Trazabilidad completa de lotes\", se necesita asignar el número de serie para actualizar la cantidad."
 
 #. module: product_unique_serial
-#: code:addons/product_unique_serial/model/stock.py:122
+#: code:addons/product_unique_serial/model/stock.py:120
 #, python-format
 msgid "The product %s has active unique lot and you try set %s in the lot %s.\n"
 "Remmember:\n"
 " %s"
 msgstr "El producto %s tiene activado lote unico y se esta intentando colocar %s en el lote %s.\n"
-"Remmember:\n"
+"Recuerda:\n"
 " %s"
 
 #. module: product_unique_serial
-#: code:addons/product_unique_serial/model/stock.py:129
+#: code:addons/product_unique_serial/model/stock.py:127
 #, python-format
 msgid "The product %s has active unique lot and you try set more products in the same lot %s.\n"
 "Remmember:\n"
 " %s"
 msgstr "El producto %s tiene activado lote unico y se estan intentando colocar varios productos en el mismo lote %s.\n"
-"Remmember:\n"
+"Recuerda:\n"
 " %s"
+
+#. module: product_unique_serial
+#: code:addons/product_unique_serial/model/stock.py:94
+#, python-format
+msgid "The serial number %s can only belong to a single product in stock"
+msgstr "El número de serie %s solo puede pertenecer a un producto en existencia"
 
 #. module: product_unique_serial
 #: field:product.template,lot_unique_ok:0
@@ -134,7 +104,7 @@ msgid "Unique lot"
 msgstr "Lote único"
 
 #. module: product_unique_serial
-#: code:addons/product_unique_serial/model/stock.py:109
+#: code:addons/product_unique_serial/model/stock.py:107
 #, python-format
 msgid "When you select a serial number (lot), the quantity is corrected with respect to\n"
 "the quantity of that serial number (lot) and not to the total quantity of the product."
@@ -142,9 +112,14 @@ msgstr "uando selecciona un nº de serie (lote), la cantidad se corrige con resp
 "cantidad de ese nº de serie (lote), y no de la cantidad total del producto."
 
 #. module: product_unique_serial
-#: code:addons/product_unique_serial/model/product.py:23
+#: code:addons/product_unique_serial/model/product.py:43
 #, python-format
 msgid "You can't activate 'full lots traceability' or 'unique lot' in the product %s because this product already have stock movements."
 msgstr "No se puede activar 'Trazabilidad completa de lotes' o 'Lote unico' en el producto %s porque este producto ya tiene movimientos de existencias."
 
+#. module: product_unique_serial
+#: code:addons/product_unique_serial/model/stock.py:66
+#, python-format
+msgid "You should only receive by the piece with the same serial number"
+msgstr "Solo se puede recibir una pieza con el mismo número de serie"
 
