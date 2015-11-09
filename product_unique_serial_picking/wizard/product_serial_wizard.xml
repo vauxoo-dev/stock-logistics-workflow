@@ -3,7 +3,7 @@
     <data>
         <record id="view_set_product_serial" model="ir.ui.view">
             <field name="name">Enter transfer details</field>
-            <field name="model">serial.wizard</field>
+            <field name="model">product.serials_wizard</field>
             <field name="arch" type="xml">
                 <form string="Set Product Serials">
                     <group>
@@ -13,13 +13,16 @@
                     </group>
                     <group>
                         <field name="serials"
-                            context="{'default_sourceloc_id':picking_source_location_id,
-                                      'default_product_id': product_id,
-                                      'default_destinationloc_id':picking_destination_location_id}"
+                            context="{'default_product_id': product_id, }"
                              nolabel="1">
-                            <tree string="Serials" editable="bottom" >
-                                <field name="lot_id" groups="stock.group_production_lot" domain="[('product_id','=?', product_id)]" context="{'product_id': product_id}"/>
+                            <tree string="Serials" editable="bottom">
+                                <field name="lot_id" groups="stock.group_production_lot" domain="[('product_id','=?', product_id)]" context="{'product_id': product_id, }"/>
+                                <field name="product_id" invisible="True"/>
                             </tree>
+                            <form string="Serials">
+                                <field name="lot_id" groups="stock.group_production_lot" domain="[('product_id','=?', product_id)]" context="{'product_id': product_id, }"/>
+                                <field name="product_id" invisible="True"/>
+                            </form>
                         </field>
                     </group>
                     <footer>

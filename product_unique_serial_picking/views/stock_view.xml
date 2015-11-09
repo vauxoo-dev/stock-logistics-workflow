@@ -3,7 +3,7 @@
     <data>
         <record model="ir.actions.act_window" id="action_set_serials">
             <field name="name">Product Set Products Serial</field>
-            <field name="res_model">serial.wizard</field>
+            <field name="res_model">product.serials_wizard</field>
             <field name="view_type">form</field>
             <field name="view_mode">form</field>
             <field name="view_id" ref="view_set_product_serial"/>
@@ -16,9 +16,13 @@
              <field name="inherit_id" ref="stock.view_move_picking_tree"/>
             <field name="arch" type="xml">
                 <xpath expr="//field[@name='product_uom_qty']" position="after">
-                    <button name="%(action_set_serials)d" string="Set Serial" groups="stock.group_stock_user" type="action" icon="STOCK_PREFERENCES"  context="{'default_product_id': product_id, 'default_picking_source_location_id': location_id, 'default_picking_destination_location_id': location_dest_id}"/>
+                    <button name="%(action_set_serials)d" string="Set Serial" groups="stock.group_production_lot"  type="action" icon="STOCK_PREFERENCES"  context="{'default_product_id': product_id, 'default_picking_source_location_id': location_id, 'default_picking_destination_location_id': location_dest_id}"
+
+                    attrs="{'invisible': [('state', 'not in', ['confirmed', 'assigned', 'waiting', 'done',])]}" 
+                    />
                 </xpath>
             </field>
         </record>
     </data>
 </openerp>
+
