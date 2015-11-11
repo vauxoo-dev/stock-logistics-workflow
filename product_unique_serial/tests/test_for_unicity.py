@@ -28,7 +28,6 @@ from copy import deepcopy
 
 from openerp import exceptions
 from openerp.tests.common import TransactionCase
-from openerp.exceptions import except_orm
 from openerp.tools import mute_logger
 from psycopg2 import IntegrityError
 
@@ -179,7 +178,10 @@ class TestUnicity(TransactionCase):
         self.transfer_picking(
             picking_1,
             self.env.ref('product_unique_serial.serial_number_demo_1'))
-        with self.assertRaises(exceptions.Warning):
+        with self.assertRaisesRegexp(
+                exceptions.Warning,
+                "The serial number 86137801852514 can only belong to"
+                " a single product in stock"):
             self.transfer_picking(
                 picking_2,
                 [self.env.ref('product_unique_serial.serial_number_demo_1')])
@@ -233,7 +235,10 @@ class TestUnicity(TransactionCase):
         self.transfer_picking(
             picking_1,
             self.env.ref('product_unique_serial.serial_number_demo_1'))
-        with self.assertRaises(exceptions.Warning):
+        with self.assertRaisesRegexp(
+                exceptions.Warning,
+                "The serial number 86137801852514 can only belong to"
+                " a single product in stock"):
             self.transfer_picking(
                 picking_2,
                 [self.env.ref('product_unique_serial.serial_number_demo_1')])
@@ -360,7 +365,10 @@ class TestUnicity(TransactionCase):
         self.transfer_picking(
             picking_out_1,
             self.env.ref('product_unique_serial.serial_number_demo_1'))
-        with self.assertRaises(exceptions.Warning):
+        with self.assertRaisesRegexp(
+                exceptions.Warning,
+                "The serial number 86137801852514 can only belong to"
+                " a single product in stock"):
             self.transfer_picking(
                 picking_out_2,
                 [self.env.ref('product_unique_serial.serial_number_demo_1')])
@@ -391,7 +399,10 @@ class TestUnicity(TransactionCase):
             stock_move_datas, picking_data_1,
             self.env.ref('stock.picking_type_in'))
         # Executing the wizard for pickings transfering
-        with self.assertRaises(exceptions.Warning):
+        with self.assertRaisesRegexp(
+                exceptions.Warning,
+                "You should only receive by the piece with the same serial "
+                "number"):
             self.transfer_picking(
                 picking_1,
                 [self.env.ref('product_unique_serial.serial_number_demo_2')])
@@ -492,7 +503,9 @@ class TestUnicity(TransactionCase):
         self.transfer_picking(
             picking_internal_1,
             [self.env.ref('product_unique_serial.serial_number_demo_1')])
-        with self.assertRaises(except_orm):
+        with self.assertRaisesRegexp(
+                exceptions.ValidationError,
+                "Product 'Nokia 2630' has active 'check no negative'"):
             self.transfer_picking(
                 picking_internal_2,
                 [self.env.ref('product_unique_serial.serial_number_demo_1')])
@@ -509,7 +522,8 @@ class TestUnicity(TransactionCase):
             'product_id': product_id.id
         }
         self.stock_production_lot_obj.create(lot_data)
-        with self.assertRaises(IntegrityError):
+        with self.assertRaisesRegexp(
+                IntegrityError, r'"stock_production_lot_name_ref_uniq"'):
             self.stock_production_lot_obj.create(lot_data)
 
     def test_7_1_1product_1serialnumber_track_production_in(self):
@@ -523,7 +537,6 @@ class TestUnicity(TransactionCase):
         self.assertTrue(product.write({'track_all': False,
                                        # mrp module should be installed
                                        # to use track_production field
-                                       'track_production': True,
                                        'lot_unique_ok': True}),
                         "Cannot write product %s" % (product.name))
         uom = self.env.ref('product.product_uom_unit')
@@ -569,7 +582,6 @@ class TestUnicity(TransactionCase):
                                        'track_incoming': True,
                                        # mrp module should be installed
                                        # to use track_production field
-                                       'track_production': True,
                                        'lot_unique_ok': True}),
                         "Cannot write product %s" % (product.name))
         uom = self.env.ref('product.product_uom_unit')
@@ -621,5 +633,8 @@ class TestUnicity(TransactionCase):
             'product_qty': 5,
             'inventory_id': stock_inv.id
         })
-        with self.assertRaises(exceptions.Warning):
+        with self.assertRaisesRegexp(
+                exceptions.Warning,
+                "You should only receive by the piece with the same serial "
+                "number"):
             stock_inv.action_done()
