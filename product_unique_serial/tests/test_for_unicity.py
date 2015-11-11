@@ -49,6 +49,10 @@ class TestUnicity(TransactionCase):
         self.stock_move_obj = self.env['stock.move']
         self.product_uom_obj = self.env['product.uom']
         self.stock_location_obj = self.env['stock.location']
+        self.stock_inventory_obj = self.env['stock.inventory']
+        self.stock_inventory_line_obj = self.env['stock.inventory.line']
+        self.stock_loc = self.env.ref('stock.stock_location_stock')
+        self.prod_d1 = self.env.ref('product_unique_serial.product_demo_1')
         self.stock_production_lot_obj = self.env['stock.production.lot']
 
     def create_stock_picking(self, moves_data, picking_data, picking_type):
@@ -533,7 +537,6 @@ class TestUnicity(TransactionCase):
         self.assertTrue(product.write({'track_all': False,
                                        # mrp module should be installed
                                        # to use track_production field
-                                       'track_production': True,
                                        'lot_unique_ok': True}),
                         "Cannot write product %s" % (product.name))
         uom = self.env.ref('product.product_uom_unit')
@@ -579,7 +582,6 @@ class TestUnicity(TransactionCase):
                                        'track_incoming': True,
                                        # mrp module should be installed
                                        # to use track_production field
-                                       'track_production': True,
                                        'lot_unique_ok': True}),
                         "Cannot write product %s" % (product.name))
         uom = self.env.ref('product.product_uom_unit')
@@ -613,3 +615,26 @@ class TestUnicity(TransactionCase):
                 "The serial number %s can only belong to"
                 " a single product in stock" % lot_vals['name']):
             stock_move_2.action_done()
+
+    def test_8_inventory_adjustment(self):
+        """Test 8. It tries to adjust inventory for a product that has \
+        selected 'unique piece' with as much new 1"""
+        stock_inv = self.stock_inventory_obj.create({
+            'name': 'Adjust Test',
+            'location_id': self.stock_loc.id,
+            'filter': 'product',
+            'product_id': self.prod_d1.id})
+        stock_inv.prepare_inventory()
+        self.stock_inventory_line_obj.create({
+            'product_id': self.prod_d1.id,
+            'location_id': self.stock_loc.id,
+            'prod_lot_id': self.env.ref(
+                'product_unique_serial.serial_number_demo_4').id,
+            'product_qty': 5,
+            'inventory_id': stock_inv.id
+        })
+        with self.assertRaisesRegexp(
+                exceptions.Warning,
+                "You should only receive by the piece with the same serial "
+                "number"):
+            stock_inv.action_done()

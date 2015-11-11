@@ -19,7 +19,8 @@
 #
 ##############################################################################
 
-from openerp import fields, models
+from openerp import fields, models, api, _
+from openerp.exceptions import ValidationError
 
 
 class ProductTemplate(models.Model):
@@ -30,3 +31,16 @@ class ProductTemplate(models.Model):
                                         'to specify a Unique '
                                         'Serial Number for '
                                         'all moves')
+
+    @api.multi
+    @api.constrains('lot_unique_ok', 'track_all')
+    def _check_not_moves_unique_lot(self):
+        for prod in self:
+            prod_ids = prod._get_products()
+            move_obj = self.env['stock.move']
+            if (prod.track_all or prod.lot_unique_ok) and\
+                    move_obj.search([('product_id', 'in', prod_ids)]):
+                raise ValidationError(_(
+                    "You can't activate 'full lots traceability' or 'unique "
+                    "lot' in the product %s because this product already "
+                    "have stock movements." % prod.name))
