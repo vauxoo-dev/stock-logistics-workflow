@@ -44,4 +44,3 @@
     'auto_install': False,
 
 }
-
