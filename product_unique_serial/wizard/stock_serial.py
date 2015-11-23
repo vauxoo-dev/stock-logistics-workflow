@@ -77,6 +77,22 @@ class StockSerial(models.TransientModel):
     product_qty_done = fields.Float(
         'Qty Done', compute='_qty_done', store=False)
 
+    @api.onchange('serial_ids')
+    def onchange_serial(self):
+        serial = []
+
+        for serial_name in self.serial_ids:
+            if serial_name.serial in serial:
+                return {
+                    'warning': {
+                        'title': _('Warning'),
+                        'message': _(
+                            'The Serial number {} already captured'.format(
+                                serial_name.serial.encode('utf-8')))
+                    }}
+            else:
+                serial.append(serial_name.serial)
+
     @api.multi
     def move_serial(self):
         quant_obj = self.env['stock.quant']
@@ -88,12 +104,17 @@ class StockSerial(models.TransientModel):
             move_id.picking_id.pack_operation_ids.filtered(
                 lambda dat: dat.product_id.id == product_id).unlink()
 
-            if move_id.picking_type_id.code != 'incoming':
+            if move_id.picking_type_id.use_existing_lots:
                 move_id.do_unreserve()
 
             for move_serial in move.serial_ids:
-
-                if move_id.picking_type_id.code == 'incoming':
+                # This validation by picking type code and
+                # picking type create/existing lots is necessary because
+                # the lot can be used again if are not present in someone
+                # location of type internal and not need to be created
+                if move_id.picking_type_id.use_create_lots or (
+                    move_id.picking_type_id.use_existing_lots and
+                        move_id.picking_id.picking_type_id.code == 'incoming'):
                     self._get_pack_ops_lot(move, move_serial)
                 else:
                     quants = quant_obj.quants_get_prefered_domain(
@@ -144,18 +165,38 @@ class StockSerialLine(models.TransientModel):
         move_obj = self.env['stock.move']
         move = self._context.get('move_id', [])
         move_id = move_obj.browse(move)
+        prod_lot_obj = self.env['stock.production.lot']
+        quant_obj = self.env['stock.quant']
 
-        if move_id.picking_type_id.code == 'incoming':
+        if move_id.picking_type_id.use_create_lots:
             return {}
         if self.serial:
-            lot_id = self.env['stock.production.lot'].search(
+            serial_number = self.serial.encode('utf-8')
+            lot_id = prod_lot_obj.search(
                 [('name', '=', self.serial),
                  ('product_id', '=', move_id.product_id.id)], limit=1)
+
+            if lot_id and\
+                    move_id.picking_id.picking_type_id.code == 'incoming':
+                other_quants = quant_obj.search(
+                    [('product_id', '=', move_id.product_id.id),
+                     ('lot_id', '=', lot_id.id),
+                     ('qty', '>', 0.0),
+                     ('location_id.usage', '=', 'internal')])
+                if other_quants:
+                    message = _(
+                        'The serial number {} is already in stock'.format(
+                            serial_number))
+                    return {
+                        'warning': {
+                            'title': _('Warning'),
+                            'message': message
+                        }}
             if not lot_id:
+                message = _('Serial {} not found'.format(serial_number))
                 return {
                     'warning': {
                         'title': _('Warning'),
-                        'message': _('Serial {} not found'.format(
-                            self.serial.encode('utf-8')))}
-                }
+                        'message': message
+                    }}
             self.lot_id = lot_id

@@ -39,6 +39,20 @@
             <field name="context">{'form_view_ref': False}</field>
         </record>
 
+        <record id="view_picking_type_serial" model="ir.ui.view">
+            <field name="name">view.picking.type.serial</field>
+            <field name="model">stock.picking.type</field>
+            <field name="inherit_id" ref="stock.view_picking_type_form"/>
+            <field name="arch" type="xml">
+                <xpath expr="//field[@name='default_location_dest_id']" position="after">
+                        <group string="Lots">
+                        <field name="use_existing_lots" groups="stock.group_production_lot"/>
+                        <field name="use_create_lots" groups="stock.group_production_lot"/>
+                        </group>
+                </xpath>
+            </field>
+        </record>
+
         <record id="view_move_serial" model="ir.ui.view">
             <field name="name">view.move.serial</field>
             <field name="model">stock.move</field>

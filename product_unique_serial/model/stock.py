@@ -141,3 +141,34 @@ class StockInventoryLine(models.Model):
                     'The product %s has active "Full Lots Traceability", you '
                     'must assign the serial number to update the quantity.'
                     % line.product_id.name))
+
+
+class StockMove(models.Model):
+
+    _inherit = 'stock.move'
+
+    @api.multi
+    def move_lot_unique(self):
+        for move in self:
+            pick_type = move.picking_id.picking_type_id
+            if move.product_id.lot_unique_ok and move.state in (
+                    'draft', 'waiting', 'confirmed', 'assigned') and\
+                    (pick_type.use_create_lots or pick_type.use_existing_lots):
+                move.lot_unique = True
+
+    lot_unique = fields.Boolean('Is lot unique?', compute='move_lot_unique')
+
+
+class StockPickingType(models.Model):
+
+    _inherit = 'stock.picking.type'
+
+    use_existing_lots = fields.Boolean(
+        'Use Existing Lots',
+        help='If this is checked, '
+        'you will be able to choose the Serial Number / Lots. ')
+    use_create_lots = fields.Boolean(
+        'Create New Lots',
+        help='If this is checked only, '
+        'it will suppose you want to create new Serial Numbers / Lots, '
+        'so you can provide them in a text field. ')
