@@ -15,8 +15,8 @@ class TestSerialWizard(TestUnicity):
             'product_unique_serial.product_demo_1')
 
     def test_serial_wizard_incoming_outgoing(self):
-        'This test validate the capture of number serial for move'\
-            'of type incoming and to use number serial in'\
+        'This test validate the capture of number serial for move '\
+            'of type incoming and to use number serial in '\
             'picking type of outgoing'
 
         picking_val = {
