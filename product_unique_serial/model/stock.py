@@ -56,7 +56,7 @@ class StockQuant(models.Model):
 
     @api.multi
     @api.constrains('product_id', 'lot_id', 'qty')
-    def _check_inicity_lot_product(self):
+    def _check_uniqueness_lot_product(self):
         note = _(
             'Remember: When a serial number (lot) is selected, its quantity '
             'is fixed against the quantity in the serial number (lot) and not '
