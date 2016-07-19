@@ -36,11 +36,10 @@ class StockTransferDetails(models.TransientModel):
     @api.model
     def fields_view_get(self, view_id=None, view_type='form',
                         toolbar=False, submenu=False):
-        """
-        Allow create serial only with incoming picking
-        Set option "no_create = True"
-        when picking type is different to incoming.
-        """
+        """Allow create serial only with incoming picking
+        Set option "no_create = True" when picking type is different to
+        incoming."""
+
         res = super(StockTransferDetails, self).fields_view_get(
             view_id=view_id, view_type=view_type,
             toolbar=toolbar, submenu=submenu)
