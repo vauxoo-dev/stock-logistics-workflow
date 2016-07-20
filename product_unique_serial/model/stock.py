@@ -27,7 +27,7 @@ class StockProductionLot(models.Model):
 
     @api.multi
     @api.depends('quant_ids.location_id')
-    def _get_last_location_id(self):
+    def _compute_get_last_location_id(self):
         for record in self:
             if record.quant_ids.ids:
                 last_quant_id = max(record.quant_ids.ids)
@@ -39,7 +39,7 @@ class StockProductionLot(models.Model):
     last_location_id = fields.Many2one(
         'stock.location',
         string="Last Location",
-        compute='_get_last_location_id',
+        compute='_compute_get_last_location_id',
         store=True)
 
     # Overwrite field to deny create serial number duplicated
@@ -104,7 +104,7 @@ class StockMove(models.Model):
     _inherit = 'stock.move'
 
     @api.multi
-    def move_lot_unique(self):
+    def _compute_move_lot_unique(self):
         for move in self:
             pick_type = move.picking_id.picking_type_id
             if move.product_id.lot_unique_ok and move.state in (
@@ -112,7 +112,9 @@ class StockMove(models.Model):
                     (pick_type.use_create_lots or pick_type.use_existing_lots):
                 move.lot_unique = True
 
-    lot_unique = fields.Boolean('Is lot unique?', compute='move_lot_unique')
+    lot_unique = fields.Boolean(
+        'Is lot unique?',
+        compute='_compute_move_lot_unique')
 
 
 class StockPickingType(models.Model):

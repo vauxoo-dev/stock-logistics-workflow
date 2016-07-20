@@ -1,9 +1,8 @@
 # coding: utf-8
-from openerp.addons.product_unique_serial.tests.test_for_unicity\
-    import TestUnicity
+from .test_common import TestCommon
 
 
-class TestSerialWizard(TestUnicity):
+class TestSerialWizard(TestCommon):
 
     def setUp(self):
         super(TestSerialWizard, self).setUp()
@@ -15,9 +14,8 @@ class TestSerialWizard(TestUnicity):
             'product_unique_serial.product_demo_1')
 
     def test_serial_wizard_incoming_outgoing(self):
-        'This test validate the capture of number serial for move '\
-            'of type incoming and to use number serial in '\
-            'picking type of outgoing'
+        """This test validate the capture of number serial for move of type
+        incoming and to use number serial in picking type of outgoing """
 
         picking_val = {
             'name': 'Picking'
@@ -120,8 +118,8 @@ class TestSerialWizard(TestUnicity):
             self.assertEquals(len(move.reserved_quant_ids), 3)
 
     def test_serial_wizard_validate_serial_outgoing(self):
-        'This test validate that number serial'\
-            'exists for product in capture in wizard'
+        """This test validate that number serial
+        exists for product in capture in wizard"""
         picking_val = {
             'name': 'Picking'
         }

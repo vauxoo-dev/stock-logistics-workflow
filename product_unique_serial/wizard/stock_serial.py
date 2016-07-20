@@ -33,7 +33,7 @@ class StockSerial(models.TransientModel):
 
     @api.multi
     @api.depends('serial_ids')
-    def _qty_done(self):
+    def _compute_qty_done(self):
         for serial in self:
             serial.product_qty_done = len(serial.serial_ids)
 
@@ -75,7 +75,7 @@ class StockSerial(models.TransientModel):
     product_id = fields.Many2one('product.product', 'Product', readonly=True)
     product_qty = fields.Float('Qty', readonly=True)
     product_qty_done = fields.Float(
-        'Qty Done', compute='_qty_done', store=False)
+        'Qty Done', compute='_compute_qty_done', store=False)
 
     @api.onchange('serial_ids')
     def onchange_serial(self):
