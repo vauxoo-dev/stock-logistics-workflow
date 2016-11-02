@@ -87,7 +87,7 @@ class StockSerial(models.TransientModel):
                     'warning': {
                         'title': _('Warning'),
                         'message': _(
-                            'The Serial number {} already captured'.format(
+                            'The Serial number %s already captured' % (
                                 serial_name.serial.encode('utf-8')))
                     }}
             else:
@@ -127,7 +127,10 @@ class StockSerial(models.TransientModel):
                         restrict_partner_id=[],
                     )
                     quant_obj.quants_reserve(quants, move_id)
-        return True
+        return {
+            'type': 'ir.actions.client',
+            'tag': 'reload',
+        }
 
     @api.model
     def _get_pack_ops_lot(self, move, move_serial):
@@ -185,7 +188,7 @@ class StockSerialLine(models.TransientModel):
                      ('location_id.usage', '=', 'internal')])
                 if other_quants:
                     message = _(
-                        'The serial number {} is already in stock'.format(
+                        'The serial number %s is already in stock' % (
                             serial_number))
                     return {
                         'warning': {
@@ -193,7 +196,7 @@ class StockSerialLine(models.TransientModel):
                             'message': message
                         }}
             if not lot_id:
-                message = _('Serial {} not found'.format(serial_number))
+                message = _('Serial %s not found' % (serial_number))
                 return {
                     'warning': {
                         'title': _('Warning'),
