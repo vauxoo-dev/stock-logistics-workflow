@@ -25,6 +25,7 @@
 ##############################################################################
 
 from openerp import models, fields, api, _
+from openerp.exceptions import ValidationError
 
 
 class StockSerial(models.TransientModel):
@@ -79,19 +80,17 @@ class StockSerial(models.TransientModel):
 
     @api.onchange('serial_ids')
     def onchange_serial(self):
-        serial = []
-
-        for serial_name in self.serial_ids:
-            if serial_name.serial in serial:
-                return {
-                    'warning': {
-                        'title': _('Warning'),
-                        'message': _(
-                            'The Serial number {} already captured'.format(
-                                serial_name.serial.encode('utf-8')))
-                    }}
-            else:
-                serial.append(serial_name.serial)
+        serials = [serial.serial for serial in self.serial_ids]
+        if any([serials.count(serial) > 1 for serial in serials]):
+            serial = list(set([
+                serial for serial in serials if serials.count(serial) > 1]))[0]
+            return {
+                'warning': {
+                    'title': _('Warning'),
+                    'message': _('The Serial number %s already captured') % (
+                        serial.encode('utf-8'))
+                }
+            }
 
     @api.multi
     def move_serial(self):
@@ -99,10 +98,14 @@ class StockSerial(models.TransientModel):
 
         for move in self:
             move_id = move.move_id
-
             product_id = move_id.product_id.id
             move_id.picking_id.pack_operation_ids.filtered(
                 lambda dat: dat.product_id.id == product_id).unlink()
+
+            if len(move.serial_ids) > move_id.product_uom_qty:
+                raise ValidationError(
+                    _('The serial numbers loaded cannot be greater'
+                      ' than the requested quantity of the product'))
 
             if move_id.picking_type_id.use_existing_lots:
                 move_id.do_unreserve()
@@ -113,9 +116,24 @@ class StockSerial(models.TransientModel):
                 # the lot can be used again if are not present in someone
                 # location of type internal and not need to be created
                 if move_id.picking_type_id.use_create_lots or (
-                    move_id.picking_type_id.use_existing_lots and
+                        move_id.picking_type_id.use_existing_lots and
                         move_id.picking_id.picking_type_id.code == 'incoming'):
+                    if quant_obj.search_count([
+                            ('product_id', '=', move_id.product_id.id),
+                            ('lot_id', '=', move_serial.lot_id.id),
+                            ('qty', '>', 0.0),
+                            ('location_id.usage', '=', 'internal')]):
+                        raise ValidationError(
+                            _('The serial number %s is already stock') % (
+                                move_serial.serial))
                     self._get_pack_ops_lot(move, move_serial)
+                elif not move_serial.lot_id:
+                    raise ValidationError(
+                        _('Serial number %s not found') % (move_serial.serial))
+                elif move_serial.lot_id.quant_ids.filtered('reservation_id'):
+                    raise ValidationError(
+                        _('The serial number %s is already reserved in'
+                          ' another move') % (move_serial.serial))
                 else:
                     quants = quant_obj.quants_get_prefered_domain(
                         move_id.location_id,
@@ -156,9 +174,25 @@ class StockSerialLine(models.TransientModel):
 
     _name = 'stock.serial.line'
 
+    @api.multi
+    @api.depends('serial')
+    def _compute_lot_id(self):
+        for line in self:
+            product_id = line.serial_id.move_id.product_id.id
+            lot_id = self.env['stock.production.lot'].search([
+                ('name', '=', line.serial),
+                ('product_id', '=', product_id)], limit=1)
+            line.lot_id = lot_id or False
+
     serial_id = fields.Many2one('stock.serial', 'Serial')
     serial = fields.Char('Serial', required=True)
-    lot_id = fields.Many2one('stock.production.lot', 'Lot/Serial Number')
+    lot_id = fields.Many2one(
+        'stock.production.lot', string='Lot/Serial Number',
+        compute='_compute_lot_id', store=False)
+
+    _sql_constraints = [
+        ('uniq_serial', 'unique(serial_id, serial)',
+         'You have already mentioned this serial number in another line')]
 
     @api.onchange('serial')
     def onchange_lot_id(self):
@@ -168,35 +202,29 @@ class StockSerialLine(models.TransientModel):
         prod_lot_obj = self.env['stock.production.lot']
         quant_obj = self.env['stock.quant']
 
-        if move_id.picking_type_id.use_create_lots:
+        if not self.serial or move_id.picking_type_id.use_create_lots:
             return {}
-        if self.serial:
-            serial_number = self.serial.encode('utf-8')
-            lot_id = prod_lot_obj.search(
-                [('name', '=', self.serial),
-                 ('product_id', '=', move_id.product_id.id)], limit=1)
 
-            if lot_id and\
-                    move_id.picking_id.picking_type_id.code == 'incoming':
-                other_quants = quant_obj.search(
-                    [('product_id', '=', move_id.product_id.id),
-                     ('lot_id', '=', lot_id.id),
-                     ('qty', '>', 0.0),
-                     ('location_id.usage', '=', 'internal')])
-                if other_quants:
-                    message = _(
-                        'The serial number {} is already in stock'.format(
-                            serial_number))
-                    return {
-                        'warning': {
-                            'title': _('Warning'),
-                            'message': message
-                        }}
-            if not lot_id:
-                message = _('Serial {} not found'.format(serial_number))
-                return {
-                    'warning': {
-                        'title': _('Warning'),
-                        'message': message
-                    }}
-            self.lot_id = lot_id
+        serial_number = self.serial.encode('utf-8')
+        lot_id = prod_lot_obj.search([
+            ('name', '=', serial_number),
+            ('product_id', '=', move_id.product_id.id)], limit=1)
+        res = {}
+
+        if not lot_id:
+            res['warning'] = {
+                'title': _('Warning'),
+                'message': _('Serial number %s not found') % (serial_number),
+            }
+        elif (move_id.picking_id.picking_type_id.code == 'incoming' and
+                quant_obj.search([
+                    ('product_id', '=', move_id.product_id.id),
+                    ('lot_id', '=', lot_id.id),
+                    ('qty', '>', 0.0),
+                    ('location_id.usage', '=', 'internal')])):
+            res['warning'] = {
+                'title': _('Warning'),
+                'message': _('The serial number %s is already stock') % (
+                    serial_number),
+            }
+        return res

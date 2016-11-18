@@ -1,4 +1,5 @@
 # coding: utf-8
+from psycopg2 import IntegrityError
 from .test_common import TestCommon
 
 
@@ -143,3 +144,34 @@ class TestSerialWizard(TestCommon):
             serial_line_val = stock_serial_line_id.onchange_lot_id()
             self.assertTrue(
                 serial_line_val.get('warning'), 'warning must be created')
+
+    def test_serial_wizard_uniq_serial_constraint(self):
+        """This test validate that number serial is not reapeted
+        in wizard"""
+        picking_val = {
+            'name': 'Picking'
+        }
+        move_val = [{
+            'product_id': self.product_unique.id,
+            'qty': 2,
+        }]
+
+        # create picking
+        picking_id = self.create_stock_picking(
+            move_val, picking_val, self.picking_type_out)
+
+        for move in picking_id.move_lines:
+            # create wizard to capture number serial for this move
+            stock_serial_id = self.stock_serial.with_context(
+                {'active_id': move.id}).create({})
+            self.stock_serial_line.with_context(
+                {'move_id': move.id}).create({
+                    'serial': 'serial_1',
+                    'serial_id': stock_serial_id.id})
+            msg = ('duplicate key value violates unique'
+                   ' constraint "stock_serial_line_uniq_serial"')
+            with self.assertRaisesRegexp(IntegrityError, msg):
+                self.stock_serial_line.with_context(
+                    {'move_id': move.id}).create({
+                        'serial': 'serial_1',
+                        'serial_id': stock_serial_id.id})
