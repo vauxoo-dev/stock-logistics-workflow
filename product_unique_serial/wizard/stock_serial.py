@@ -82,13 +82,13 @@ class StockSerial(models.TransientModel):
     def onchange_serial(self):
         serials = [serial.serial for serial in self.serial_ids]
         if any([serials.count(serial) > 1 for serial in serials]):
-            serial = list(set([
+            serial_number = list(set([
                 serial for serial in serials if serials.count(serial) > 1]))[0]
             return {
                 'warning': {
                     'title': _('Warning'),
                     'message': _('The Serial number %s already captured') % (
-                        serial.encode('utf-8'))
+                        serial_number.encode('utf-8'))
                 }
             }
 
@@ -174,21 +174,10 @@ class StockSerialLine(models.TransientModel):
 
     _name = 'stock.serial.line'
 
-    @api.multi
-    @api.depends('serial')
-    def _compute_lot_id(self):
-        for line in self:
-            product_id = line.serial_id.move_id.product_id.id
-            lot_id = self.env['stock.production.lot'].search([
-                ('name', '=', line.serial),
-                ('product_id', '=', product_id)], limit=1)
-            line.lot_id = lot_id or False
-
     serial_id = fields.Many2one('stock.serial', 'Serial')
     serial = fields.Char('Serial', required=True)
     lot_id = fields.Many2one(
-        'stock.production.lot', string='Lot/Serial Number',
-        compute='_compute_lot_id', store=False)
+        'stock.production.lot', string='Lot/Serial Number')
 
     _sql_constraints = [
         ('uniq_serial', 'unique(serial_id, serial)',
@@ -209,12 +198,12 @@ class StockSerialLine(models.TransientModel):
         lot_id = prod_lot_obj.search([
             ('name', '=', serial_number),
             ('product_id', '=', move_id.product_id.id)], limit=1)
-        res = {}
 
         if not lot_id:
-            res['warning'] = {
+            return {'warning': {
                 'title': _('Warning'),
                 'message': _('Serial number %s not found') % (serial_number),
+                }
             }
         elif (move_id.picking_id.picking_type_id.code == 'incoming' and
                 quant_obj.search([
@@ -222,9 +211,10 @@ class StockSerialLine(models.TransientModel):
                     ('lot_id', '=', lot_id.id),
                     ('qty', '>', 0.0),
                     ('location_id.usage', '=', 'internal')])):
-            res['warning'] = {
+            return {'warning': {
                 'title': _('Warning'),
                 'message': _('The serial number %s is already stock') % (
                     serial_number),
+                }
             }
-        return res
+        self.lot_id = lot_id

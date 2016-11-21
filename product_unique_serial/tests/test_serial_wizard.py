@@ -1,5 +1,6 @@
 # coding: utf-8
 from psycopg2 import IntegrityError
+from openerp.tools import mute_logger
 from .test_common import TestCommon
 
 
@@ -145,6 +146,7 @@ class TestSerialWizard(TestCommon):
             self.assertTrue(
                 serial_line_val.get('warning'), 'warning must be created')
 
+    @mute_logger('openerp.sql_db')
     def test_serial_wizard_uniq_serial_constraint(self):
         """This test validate that number serial is not reapeted
         in wizard"""
