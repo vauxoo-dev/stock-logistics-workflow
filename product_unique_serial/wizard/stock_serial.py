@@ -184,11 +184,16 @@ class StockSerialLine(models.TransientModel):
                 ('product_id', '=', product_id)], limit=1)
             line.lot_id = lot_id or False
 
+    @api.multi
+    def _inverse_lot_id(self):
+        for line in self:
+            line.name = line.lot_id.name or ''
+
     serial_id = fields.Many2one('stock.serial', 'Serial')
     serial = fields.Char('Serial', required=True)
     lot_id = fields.Many2one(
         'stock.production.lot', string='Lot/Serial Number',
-        compute='_compute_lot_id', store=False)
+        compute='_compute_lot_id', inverse='_inverse_lot_id')
 
     _sql_constraints = [
         ('uniq_serial', 'unique(serial_id, serial)',
