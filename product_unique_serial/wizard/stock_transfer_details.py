@@ -63,7 +63,7 @@ class StockTransferDetails(models.TransientModel):
                         # Don't show old serial number
                         # just allow to create new one or
                         # allow to select a serial without moves
-                        sub_domain = "('quant_ids', '=', [])"
+                        sub_domain = "('quant_ids', '=?', [])"
                     new_domain = domain_str_append(
                         node.get('domain'), sub_domain)
                     node.set('domain', new_domain)
