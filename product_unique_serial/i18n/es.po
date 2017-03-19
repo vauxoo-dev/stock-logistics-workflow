@@ -97,11 +97,6 @@ msgid "Is lot unique?"
 msgstr "¿Es lote único?"
 
 #. module: product_unique_serial
-#: field:stock.production.lot,last_location_id:0
-msgid "Last Location"
-msgstr "Última ubicación"
-
-#. module: product_unique_serial
 #: field:stock.serial,__last_update:0
 #: field:stock.serial.line,__last_update:0
 msgid "Last Modified on"
