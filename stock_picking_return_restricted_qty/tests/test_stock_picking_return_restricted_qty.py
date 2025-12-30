@@ -29,7 +29,6 @@ class StockPickingReturnRestrictedQtyTest(BaseCommon):
                         0,
                         0,
                         {
-                            "name": product.name,
                             "product_id": product.id,
                             "product_uom_qty": 20,
                             "product_uom": product.uom_id.id,
